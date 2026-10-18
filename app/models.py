@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -72,3 +72,19 @@ class DeliveryAttempt(Base):
     outcome: Mapped[str] = mapped_column(String(20))  # for example "delivered" or "failed"
     failure_reason: Mapped[str | None] = mapped_column(String(50), default=None)  # filled only when failed
     attempted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditLog(Base):
+    # History of every change. Append-only by design: rows are only ever added.
+    # No foreign key on purpose: the history must survive even if the original row is removed.
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_log_entity", "entity_type", "entity_id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    entity_type: Mapped[str] = mapped_column(String(30))  # for example "shipment"
+    entity_id: Mapped[int] = mapped_column(Integer)  # the id of that shipment
+    action: Mapped[str] = mapped_column(String(50))  # for example "status_change"
+    old_value: Mapped[str | None] = mapped_column(String(50), default=None)
+    new_value: Mapped[str | None] = mapped_column(String(50), default=None)
+    actor: Mapped[str] = mapped_column(String(100), default="system")  # who did it
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
