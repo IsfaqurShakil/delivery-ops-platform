@@ -1,0 +1,29 @@
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Test and tool output
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+
+# Local database data
+pgdata/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Editor and OS
+.vscode/
+.idea/
+Thumbs.db
