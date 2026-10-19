@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.db import engine
 from app.deps import get_db
 from app.main import app
-from app.models import AuditLog, DeliveryAttempt, Rider, Zone
+from app.models import AuditLog, DeliveryAttempt, Rider, UserRole, Zone
 
 BAD_ID = 999_999_999  # an id that does not exist
 ALL_STATUSES = [
@@ -27,26 +27,11 @@ ALL_STATUSES = [
 
 
 @pytest.fixture
-def db():
-    connection = engine.connect()
-    outer = connection.begin()
-    # create_savepoint: when the app calls commit(), it only releases a savepoint.
-    # The real transaction stays open and is rolled back at the end of the test.
-    session = Session(bind=connection, join_transaction_mode="create_savepoint", autoflush=False)
-    yield session
-    session.close()
-    outer.rollback()
-    connection.close()
-
-
-@pytest.fixture
-def client(db):
-    def override_get_db():
-        yield db
-
-    app.dependency_overrides[get_db] = override_get_db  # the app now uses our test session
-    yield TestClient(app)
-    app.dependency_overrides.clear()
+def client(client, make_user, auth):
+    # These older tests act as an admin: the client sends an admin token with every request.
+    admin = make_user(role=UserRole.ADMIN)
+    client.headers.update(auth(admin))
+    return client
 
 
 def make_zone(db: Session) -> Zone:
