@@ -200,3 +200,30 @@ def test_audit_log_records_who_did_it(client, db, auth, world):
         ("assigned", world.dispatcher.username),
         ("out_for_delivery", world.rider_user.username),
     ]
+
+
+# ---------- rider reporting a failed attempt (closes a gap found by breaking the code on purpose) ----------
+
+def test_rider_can_report_failed_attempt_with_reason(client, auth, world):
+    assert status_as(client, auth, world.rider_user, world.shipment_id, "out_for_delivery").status_code == 200
+    failed = status_as(
+        client, auth, world.rider_user, world.shipment_id, "attempt_failed", failure_reason="phone_off"
+    )
+    assert failed.status_code == 200
+    body = failed.json()
+    assert body["status"] == "attempt_failed"
+    assert body["attempt_count"] == 1
+
+
+def test_rider_failed_attempt_needs_a_reason(client, auth, world):
+    assert status_as(client, auth, world.rider_user, world.shipment_id, "out_for_delivery").status_code == 200
+    assert status_as(client, auth, world.rider_user, world.shipment_id, "attempt_failed").status_code == 422
+
+
+def test_rider_cannot_reschedule_after_failed_attempt(client, auth, world):
+    status_as(client, auth, world.rider_user, world.shipment_id, "out_for_delivery")
+    status_as(client, auth, world.rider_user, world.shipment_id, "attempt_failed", failure_reason="phone_off")
+    response = status_as(client, auth, world.rider_user, world.shipment_id, "rescheduled")
+    assert response.status_code == 403  # rescheduling is a dispatcher job
+    after = client.get(f"/shipments/{world.shipment_id}", headers=auth(world.dispatcher)).json()
+    assert after["status"] == "attempt_failed"
