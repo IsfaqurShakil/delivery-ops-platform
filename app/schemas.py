@@ -44,3 +44,8 @@ class ShipmentOut(BaseModel):
     is_cod: bool
     cod_amount: Decimal
     attempt_count: int
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

@@ -1,5 +1,5 @@
 # app/config.py
-# Reads settings (database host, user, password...) from the .env file.
+# Reads settings (database host, user, password, JWT secret...) from the .env file.
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     db_name: str = "delivery_ops"
     db_user: str = "delivery_app"
     db_password: str = ""
+
+    # Secret key used to sign login tokens. Empty by default so that a missing secret is caught, not guessed.
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

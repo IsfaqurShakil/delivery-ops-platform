@@ -2,9 +2,11 @@
 # The entry point of our API.
 from fastapi import FastAPI
 
+from app.auth_routes import router as auth_router
 from app.routes import router as shipments_router
 
 app = FastAPI(title="Delivery Operations Platform")
+app.include_router(auth_router)
 app.include_router(shipments_router)
 
 

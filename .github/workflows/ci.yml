@@ -28,6 +28,8 @@ jobs:
       DB_NAME: delivery_ops
       DB_USER: delivery_app
       DB_PASSWORD: ci_password
+      JWT_SECRET: ci-only-fake-jwt-secret-not-a-real-secret-123456
+      JWT_EXPIRE_MINUTES: "30"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

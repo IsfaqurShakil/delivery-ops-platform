@@ -88,3 +88,24 @@ class AuditLog(Base):
     new_value: Mapped[str | None] = mapped_column(String(50), default=None)
     actor: Mapped[str] = mapped_column(String(100), default="system")  # who did it
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserRole(enum.StrEnum):
+    ADMIN = "admin"
+    DISPATCHER = "dispatcher"
+    RIDER = "rider"
+    VIEWER = "viewer"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))  # never the real password, only its hash
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, native_enum=False, values_callable=lambda e: [m.value for m in e])
+    )
+    rider_id: Mapped[int | None] = mapped_column(ForeignKey("riders.id"), default=None)  # only for rider users
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
