@@ -211,7 +211,7 @@ def test_rider_can_report_failed_attempt_with_reason(client, auth, world):
     )
     assert failed.status_code == 200
     body = failed.json()
-    assert body["status"] == "attempt_failed"
+    assert body["status"] == "rescheduled"  # rule engine: phone_off -> rescheduled automatically
     assert body["attempt_count"] == 1
 
 
@@ -222,7 +222,8 @@ def test_rider_failed_attempt_needs_a_reason(client, auth, world):
 
 def test_rider_cannot_reschedule_after_failed_attempt(client, auth, world):
     status_as(client, auth, world.rider_user, world.shipment_id, "out_for_delivery")
-    status_as(client, auth, world.rider_user, world.shipment_id, "attempt_failed", failure_reason="phone_off")
+    # wrong_address has no automatic next status, so the shipment stays in attempt_failed
+    status_as(client, auth, world.rider_user, world.shipment_id, "attempt_failed", failure_reason="wrong_address")
     response = status_as(client, auth, world.rider_user, world.shipment_id, "rescheduled")
     assert response.status_code == 403  # rescheduling is a dispatcher job
     after = client.get(f"/shipments/{world.shipment_id}", headers=auth(world.dispatcher)).json()

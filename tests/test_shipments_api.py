@@ -197,18 +197,22 @@ def test_failed_attempt_requires_reason(client, db):
     assert client.get(f"/shipments/{shipment_id}").json()["status"] == "out_for_delivery"
 
 
-def test_failed_attempt_then_reschedule_then_deliver(client, db):
+def test_failed_attempt_then_auto_reschedule_then_deliver(client, db):
     zone = make_zone(db)
     rider = make_rider(db, zone)
     shipment_id = new_shipment(client, zone).json()["id"]
     set_status(client, shipment_id, "assigned", rider_id=rider.id)
     set_status(client, shipment_id, "out_for_delivery")
 
+    # phone_off: the rule engine moves the shipment to rescheduled by itself
     failed = set_status(client, shipment_id, "attempt_failed", failure_reason="phone_off")
     assert failed.status_code == 200
     assert failed.json()["attempt_count"] == 1
+    assert failed.json()["status"] == "rescheduled"
 
-    assert set_status(client, shipment_id, "rescheduled").status_code == 200
+    # a human can no longer reschedule it: rescheduled -> rescheduled is illegal
+    assert set_status(client, shipment_id, "rescheduled").status_code == 409
+
     assert set_status(client, shipment_id, "assigned", rider_id=rider.id).status_code == 200
     assert set_status(client, shipment_id, "out_for_delivery").status_code == 200
     assert set_status(client, shipment_id, "delivered").status_code == 200
@@ -221,7 +225,6 @@ def test_failed_attempt_then_reschedule_then_deliver(client, db):
         (1, "failed", "phone_off"),
         (2, "delivered", None),
     ]
-
 
 def test_delivered_shipment_cannot_change(client, db):
     shipment_id, rider = deliver(client, db)
