@@ -5,10 +5,10 @@ import random
 from decimal import Decimal
 
 from faker import Faker
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 
 from app.db import SessionLocal, settings
-from app.models import DeliveryAttempt, Rider, Shipment, Zone
+from app.models import DeliveryAttempt, ExceptionTask, Rider, Shipment, User, Zone
 
 ZONE_NAMES = ["Dhanmondi", "Gulshan", "Mirpur", "Uttara", "Mohammadpur", "Motijheel"]
 RIDERS_PER_ZONE = 3
@@ -24,7 +24,9 @@ def seed_database(count: int, seed_value: int) -> None:
     rng = random.Random(seed_value)  # our own repeatable random number generator
 
     with SessionLocal() as session:
-        # Wipe old data. Children first, then parents, because of the foreign keys.
+               # Wipe old data. Children first, then parents, because of the foreign keys.
+        session.execute(delete(ExceptionTask))               # points to shipments, so it goes first
+        session.execute(update(User).values(rider_id=None))  # keep the users, only unlink them from riders
         session.execute(delete(DeliveryAttempt))
         session.execute(delete(Shipment))
         session.execute(delete(Rider))
