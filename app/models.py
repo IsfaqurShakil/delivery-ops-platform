@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -87,6 +87,7 @@ class AuditLog(Base):
     old_value: Mapped[str | None] = mapped_column(String(50), default=None)
     new_value: Mapped[str | None] = mapped_column(String(50), default=None)
     actor: Mapped[str] = mapped_column(String(100), default="system")  # who did it
+    details: Mapped[str | None] = mapped_column(Text, default=None)  # extra context as JSON text, for example the rule version
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -108,4 +109,18 @@ class User(Base):
     )
     rider_id: Mapped[int | None] = mapped_column(ForeignKey("riders.id"), default=None)  # only for rider users
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ExceptionTask(Base):
+    # A piece of follow-up work created when a delivery fails, for example "send an SMS reminder"
+    # or "customer service must call the recipient". Created by the exception rule engine.
+    __tablename__ = "exception_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id"), index=True)
+    task_type: Mapped[str] = mapped_column(String(50))  # "sms_reminder" or "customer_service_task"
+    status: Mapped[str] = mapped_column(String(20), default="open")  # "open" until someone finishes it
+    reason: Mapped[str | None] = mapped_column(String(50), default=None)  # the failure reason that caused it
+    rule_version: Mapped[str] = mapped_column(String(20))  # which version of the rules created this task
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
