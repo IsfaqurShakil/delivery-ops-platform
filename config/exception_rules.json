@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "max_attempts": 3,
+  "on_max_attempts": {
+    "next_status": "return_to_sender",
+    "tasks": [],
+    "block_cod": true
+  },
+  "default": {
+    "next_status": null,
+    "tasks": ["customer_service_task"]
+  },
+  "reasons": {
+    "phone_off": { "next_status": "rescheduled", "tasks": ["sms_reminder"] },
+    "customer_not_available": { "next_status": "rescheduled", "tasks": [] },
+    "wrong_address": { "next_status": null, "tasks": ["customer_service_task"] },
+    "refused_by_customer": { "next_status": "return_to_sender", "tasks": [] }
+  }
+}
