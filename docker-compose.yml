@@ -1,0 +1,40 @@
+# Two containers: db (PostgreSQL 17) and api (our FastAPI app)
+services:
+  db:
+    image: postgres:17
+    environment:
+      # Local demo values only. Real secrets never go in this file.
+      POSTGRES_USER: delivery_app
+      POSTGRES_PASSWORD: local_demo_password
+      POSTGRES_DB: delivery_ops
+    ports:
+      - "5433:5432"   # 5433 on host, so it does not clash with a local PostgreSQL on 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # keeps data after container stops
+    healthcheck:
+      # api waits until the database says it is ready
+      test: ["CMD-SHELL", "pg_isready -U delivery_app -d delivery_ops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .   # build the image from our Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy   # start only after db is healthy
+    environment:
+      DB_HOST: db   # inside Compose, the db container is reached by its service name
+      DB_PORT: "5432"
+      DB_USER: delivery_app
+      DB_PASSWORD: local_demo_password
+      DB_NAME: delivery_ops
+      JWT_SECRET: local-demo-secret-change-me-at-least-32-chars
+      JWT_EXPIRE_MINUTES: "60"
+    ports:
+      - "8000:8000"
+    # Run migrations first, then start the server
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+volumes:
+  pgdata:
