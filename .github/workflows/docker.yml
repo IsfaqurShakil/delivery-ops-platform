@@ -1,0 +1,41 @@
+# Verifies that the Dockerfile and docker-compose.yml really work
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docker-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      # Download our repo code into the CI machine
+      - uses: actions/checkout@v4
+
+      # Build the api image and start api + db in the background
+      - name: Build and start containers
+        run: docker compose up -d --build
+
+      # Wait up to ~60 seconds for /health to answer 200
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          exit 1
+
+      # If anything failed, print container logs so we can see why
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      # Always clean up
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
