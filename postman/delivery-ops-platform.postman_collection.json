@@ -1,0 +1,258 @@
+{
+  "info": {
+    "_postman_id": "011b13ef-a9ce-449b-9097-9c25a92690e0",
+    "name": "Delivery Ops Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59085044",
+    "_collection_link": "https://go.postman.co/collection/59085044-011b13ef-a9ce-449b-9097-9c25a92690e0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Login (admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Save the access token so the next requests can use it\r\nconst data = pm.response.json();\r\npm.environment.set(\"token\", data.access_token);\r\n\r\npm.test(\"Login returns 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Response has an access token\", () => pm.expect(data.access_token).to.be.a(\"string\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "admin"
+            },
+            {
+              "key": "password",
+              "value": "12345678"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create shipment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Save the new shipment id for the next requests\r\nconst data = pm.response.json();\r\npm.environment.set(\"shipment_id\", data.id);\r\n\r\npm.test(\"Create returns 201\", () => pm.response.to.have.status(201));\r\npm.test(\"Status is created\", () => pm.expect(data.status).to.eql(\"created\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"recipient_name\": \"Test Person\",\r\n  \"recipient_phone\": \"01712345678\",\r\n  \"address\": \"House 5, Road 3, Gulshan\",\r\n  \"zone_id\": 222,\r\n  \"is_cod\": true,\r\n  \"cod_amount\": 1200\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/shipments",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "shipments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get shipment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Get returns 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Id matches\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.environment.get(\"shipment_id\"))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/shipments/{{shipment_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "shipments",
+            "{{shipment_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Change status to assigned",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 200 means the move created -> assigned was accepted\r\npm.test(\"status is 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n// the body must show the new status\r\npm.test(\"shipment is now assigned\", function () {\r\n    pm.expect(pm.response.json().status).to.eql(\"assigned\");\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"new_status\": \"assigned\",\r\n  \"rider_id\": 198\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/shipments/{{shipment_id}}/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "shipments",
+            "{{shipment_id}}",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Change status as viewer (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// a viewer may read but never change a shipment\r\npm.test(\"viewer is forbidden (403)\", function () {\r\n    pm.response.to.have.status(403);\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"new_status\": \"assigned\",\r\n  \"rider_id\": 198\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/shipments/{{shipment_id}}/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "shipments",
+            "{{shipment_id}}",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login (viewer)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// save the viewer token so the next request can use it\r\npm.environment.set(\"viewer_token\", pm.response.json().access_token);\r\npm.test(\"viewer login is 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "viewer1"
+            },
+            {
+              "key": "password",
+              "value": "09876543"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get shipment without token (401).",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
